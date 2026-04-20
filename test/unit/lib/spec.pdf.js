@@ -429,6 +429,11 @@ describe('pdf', () => {
             };
             expect(() => pdf.getTagOptions('loop1')).to.not.throw();
         });
+
+        it('should add heading structure roles to heading tags', () => {
+            let options = pdf.getTagOptions('h3');
+            options.structure.should.equal('H3');
+        });
     });
 
     describe('getOptionalPercentageValue', () => {
@@ -674,6 +679,62 @@ describe('pdf', () => {
                 }
             });
             expect(() => { pdf.imgTag(pdf.state, imgOptions); } ).to.throw('Invalid <img> src attribute');
+        });
+    });
+
+    describe('text', () => {
+        let doc;
+
+        beforeEach(() => {
+            pdf = new PDF(obj, options);
+            doc = {
+                x: 10,
+                y: 20,
+                trim: false,
+                continued: false,
+                fill: sinon.stub().returnsThis(),
+                font: sinon.stub().returnsThis(),
+                fontSize: sinon.stub().returnsThis(),
+                text: sinon.stub().returnsThis(),
+                struct: sinon.stub().callsFake((type, callback) => {
+                    if (callback) callback();
+                    return { type };
+                }),
+                addStructure: sinon.stub()
+            };
+        });
+
+        it('should use paragraph structure by default', () => {
+            let state = {
+                doc,
+                path: 'pdf.page(1).p(1)',
+                style: {
+                    color: 'black',
+                    font: 'Helvetica',
+                    size: 12
+                }
+            };
+
+            pdf.text(state, 'paragraph');
+
+            doc.struct.should.have.been.calledWithExactly('P', sinon.match.func);
+        });
+
+        it('should use heading structure when configured on the style', () => {
+            let state = {
+                doc,
+                path: 'pdf.page(1).h1(1)',
+                style: {
+                    color: 'black',
+                    font: 'Helvetica-Bold',
+                    size: 24,
+                    structure: 'H1'
+                }
+            };
+
+            pdf.text(state, 'heading');
+
+            doc.struct.should.have.been.calledWithExactly('H1', sinon.match.func);
         });
     });
 });
